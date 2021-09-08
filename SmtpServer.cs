@@ -17,7 +17,7 @@ namespace MockSmtpServer
 
         public void RunServer(int port, IPAddress ip, string serverDnsName)
         {
-            const int PauseTimeMs = 200;
+            const int PauseTimeMs = 100;
             int queueNumber = 0;
 
             TcpListener server = null;
@@ -44,42 +44,46 @@ namespace MockSmtpServer
                                 // RSET > clear envelope, back to mail from
                                 // NOOP > just a response
 
-
+                                Thread.Sleep(PauseTimeMs);
                                 // HELO relay.example.com
                                 var clientMessage = ReadMessage(stream);
-                                var caller = clientMessage.Split(" ")[1].Replace("\n\r", "");
-                                WriteMessage(stream, $"250 {serverDnsName}, I am glad to meet you");
-                                Thread.Sleep(PauseTimeMs);
-
-                                // MAIL FROM:<bob@example.com>
-                                clientMessage = ReadMessage(stream);
-                                WriteMessage(stream, "250 Ok");
-                                Thread.Sleep(PauseTimeMs);
-
-                                // RCPT TO:<alice@example.com>
-                                clientMessage = ReadMessage(stream);
-                                WriteMessage(stream, "250 Ok");
-                                Thread.Sleep(PauseTimeMs);
-
-                                // DATA
-                                clientMessage = ReadMessage(stream);
-                                WriteMessage(stream, "354 End data with <CR><LF>/<CR><LF>");
-                                Thread.Sleep(PauseTimeMs);
-
-                                // MAIL data
-                                clientMessage = ReadMessage(stream);
-                                while (!clientMessage.EndsWith(string.Concat(Environment.NewLine, ".", Environment.NewLine)))
+                                if (clientMessage != "")
                                 {
-                                    clientMessage = string.Concat(clientMessage, ReadMessage(stream));
+                                    var caller = clientMessage.Split(" ")[1].Replace("\n\r", "");
+                                    WriteMessage(stream, $"250 {serverDnsName}, I am glad to meet you");
+                                    Thread.Sleep(PauseTimeMs);
+
+                                    // MAIL FROM:<bob@example.com>
+                                    clientMessage = ReadMessage(stream);
+                                    WriteMessage(stream, "250 Ok");
+                                    Thread.Sleep(PauseTimeMs);
+
+                                    // RCPT TO:<alice@example.com>
+                                    clientMessage = ReadMessage(stream);
+                                    WriteMessage(stream, "250 Ok");
+                                    Thread.Sleep(PauseTimeMs);
+
+                                    // DATA
+                                    clientMessage = ReadMessage(stream);
+                                    WriteMessage(stream, "354 End data with <CR><LF>/<CR><LF>");
+                                    Thread.Sleep(PauseTimeMs);
+
+                                    // MAIL data
+                                    clientMessage = ReadMessage(stream);
+                                    while (!clientMessage.EndsWith(string.Concat(Environment.NewLine, ".", Environment.NewLine)))
+                                    {
+                                        clientMessage = string.Concat(clientMessage, ReadMessage(stream));
+                                    }
+
+                                    queueNumber += 1;
+                                    WriteMessage(stream, $"250 Ok: queued as {queueNumber}");
+
+                                    if (queueNumber == int.MaxValue) queueNumber = 0;
+
+                                    WriteMessage(stream, "221 Bye");
+                                    _logging.LogMessage("");
                                 }
-
-                                queueNumber += 1;
-                                WriteMessage(stream, $"250 Ok: queued as {queueNumber}");
-
-                                if (queueNumber == int.MaxValue) queueNumber = 0;
-
-                                WriteMessage(stream, "221 Bye");
-                                _logging.LogMessage("");
+                                Thread.Sleep(PauseTimeMs);
                             }
 
                             client.Close();
@@ -112,7 +116,7 @@ namespace MockSmtpServer
 
         private string ReadMessage(NetworkStream stream)
         {
-            const int BufferSize = 2048;
+            const int BufferSize = 4096;
 
             var buffer = new byte[BufferSize];
             var data = new StringBuilder();
