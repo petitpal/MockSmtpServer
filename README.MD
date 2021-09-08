@@ -7,7 +7,7 @@ For now, this is just a hacked together server implementation so I don't need to
 Later on I'm intending to fill this out a bit more and impelment it in a half decent way - with some better message handling, ability to output to file, ability to request specific mail server failure types, etc
 
 ## Using
-It's as simple as just building and running. If you like at Program.cs you'll see the following parameter:
+It's as simple as just building and running. You can tweak port numbers and so on, if you want to. To do this first look at Program.cs, where you'll see the following parameters:
 
 > static void Main(int port = 44368, string ip = "127.0.0.1", string dns = "mocksmtp.com")
 
